@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Login / Signup</title>
+<style>
+body {
+  font-family: Arial;
+  background: #f4f6f8;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+.box {
+  background: #fff;
+  padding: 20px;
+  width: 320px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0,0,0,.1);
+}
+input, button {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+}
+button {
+  background: #2575fc;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+.toggle {
+  text-align: center;
+  cursor: pointer;
+  color: #2575fc;
+}
+</style>
+</head>
+<body>
+
+<div class="box">
+  <h2 id="title">Signup</h2>
+
+  <input type="text" id="name" placeholder="Name">
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Password">
+
+  <button onclick="submitForm()">Submit</button>
+  <p class="toggle" onclick="toggleForm()">Already have an account? Login</p>
+
+  <p id="msg"></p>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyrSpy9_fh-oiG_tnkRxBJ0QS6AMb1S19VuPrUaO1Q53gTV4Me8NXeUeKHzapLNj4sB/exec";
+let mode = "signup";
+
+function toggleForm() {
+  mode = mode === "signup" ? "login" : "signup";
+  document.getElementById("title").innerText = mode === "signup" ? "Signup" : "Login";
+  document.getElementById("name").style.display = mode === "signup" ? "block" : "none";
+}
+
+function submitForm() {
+  const data = {
+    action: mode,
+    name: document.getElementById("name").value,
+    email: document.getElementById("email").value,
+    password: document.getElementById("password").value
+  };
+
+  fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify(data)
+  })
+  .then(res => res.json())
+  .then(res => {
+    document.getElementById("msg").innerText = res.message;
+    if (res.status === "success" && mode === "login") {
+      alert("Login Successful!");
+    }
+  });
+}
+</script>
+
+</body>
+</html>
