@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Attendance Management System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            flex-wrap: wrap;
+        }
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            background: #eee;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+            transition: background 0.3s;
+        }
+        .tab.active {
+            background: #fff;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+            background: #fff;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 0 0 5px 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .tab-content.active {
+            display: block;
+        }
+        #toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 30px;
+            color: white;
+            border-radius: 5px;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .success { background: #4caf50; }
+        .error { background: #f44336; }
+
+        /* Manage Students */
+        #addStudentForm {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        #addStudentForm input, #addStudentForm select, #addStudentForm button {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        #addStudentForm button {
+            background: #2196f3;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Collapsible Batch Accordion */
+        .batch-accordion {
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .batch-header {
+            background: #e3f2fd;
+            padding: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s;
+        }
+        .batch-header:hover {
+            background: #bbdefb;
+        }
+        .batch-header::after {
+            content: '▼';
+            font-size: 14px;
+            transition: transform 0.3s;
+        }
+        .batch-header.collapsed::after {
+            transform: rotate(-90deg);
+        }
+        .batch-count {
+            background: #2196f3;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+        .batch-content {
+            padding: 0 15px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.4s ease;
+            background: #f9f9f9;
+        }
+        .batch-content.open {
+            padding: 15px;
+            max-height: 1000px;
+        }
+        .student {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 12px 0;
+            padding: 12px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+        }
+        .student select, .student button {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .student button {
+            background: #ff9800;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Attendance */
+        #attendanceControls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        #attendanceControls select, #attendanceControls button {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        #attendanceControls button {
+            background: #2196f3;
+            color: white;
+            cursor: pointer;
+        }
+        #saveAttendance {
+            background: #4caf50;
+            padding: 14px 24px;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .attendance-table {
+            overflow: auto;
+            max-height: 70vh;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #fff;
+        }
+        table { border-collapse: collapse; width: 100%; min-width: 800px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th:first-child, td:first-child {
+            position: sticky; left: 0; background: #f0f0f0; z-index: 1; min-width: 200px; text-align: left;
+        }
+        th { position: sticky; top: 0; background: #e0e0e0; z-index: 2; }
+        select.p { background: lightgreen; }
+        select.a { background: lightcoral; }
+        select.l { background: yellow; }
+        .no-students {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+            font-size: 18px;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            .tab { padding: 12px 20px; font-size: 15px; }
+            #addStudentForm, .student { flex-direction: column; }
+            th:first-child, td:first-child { min-width: 140px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" data-tab="manage">Manage Students</div>
+            <div class="tab" data-tab="attendance">Mark Attendance</div>
+        </div>
+
+        <div id="manage" class="tab-content active">
+            <form id="addStudentForm">
+                <input type="text" placeholder="Student Name" required>
+                <input type="text" placeholder="Mobile Number" required>
+                <select required></select>
+                <button type="submit">Add Student</button>
+            </form>
+            <div id="studentsList"></div>
+        </div>
+
+        <div id="attendance" class="tab-content">
+            <div id="attendanceControls">
+                <select id="batchSelect"></select>
+                <select id="monthSelect">
+                    <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+                    <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+                    <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+                    <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                </select>
+                <select id="yearSelect"></select>
+                <button id="loadAttendance">Load Attendance</button>
+            </div>
+            <div class="attendance-table" id="attendanceTable"></div>
+            <div style="text-align: center;">
+                <button id="saveAttendance" style="display:none;">Save Attendance</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw7qhriJGdqgYNtLe41SkuHZpGi_rXoDNx5w0LjryA10vpX7FQPOdoxTQF0Yarf7ux5Wg/exec'; // ← REPLACE WITH YOUR URL
+
+        const batches = [
+            {id: 1, label: '1 (7:00 - 8:00 AM)'}, {id: 2, label: '2 (8:00 - 9:00 AM)'},
+            {id: 3, label: '3 (9:00 - 10:00 AM)'}, {id: 4, label: '4 (10:00 - 11:00 AM)'},
+            {id: 5, label: '5 (11:00 - 12:00 PM)'}, {id: 6, label: '6 (12:00 - 1:00 PM)'},
+            {id: 7, label: '7 (1:00 - 2:00 PM)'}, {id: 8, label: '8 (2:00 - 3:00 PM)'},
+            {id: 9, label: '9 (3:00 - 4:00 PM)'}, {id: 10, label: '10 (4:00 - 5:00 PM)'},
+            {id: 11, label: '11 (5:00 - 6:00 PM)'}, {id: 12, label: '12 (6:00 - 7:00 PM)'},
+            {id: 13, label: '13 (7:00 - 8:00 PM)'}, {id: 14, label: '14 (8:00 - 9:00 PM)'},
+            {id: 15, label: '15 (9:00 - 10:00 PM)'}
+        ];
+
+        const statuses = ['Regular', 'Leave', 'Completed', 'Dropout'];
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Populate batch selects
+        function populateBatches(select) {
+            select.innerHTML = '<option value="">Select Batch</option>';
+            batches.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b.id;
+                opt.textContent = b.label;
+                select.appendChild(opt);
+            });
+        }
+        populateBatches(document.querySelector('#addStudentForm select'));
+        populateBatches(document.getElementById('batchSelect'));
+
+        // Years
+        const yearSelect = document.getElementById('yearSelect');
+        for (let y = 2020; y <= 2030; y++) {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            if (y === 2025) opt.selected = true;
+            yearSelect.appendChild(opt);
+        }
+
+        function showToast(msg, error = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = error ? 'error' : 'success';
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 4000);
+        }
+
+        // Load only Regular + Leave students (hide Completed/Dropout)
+        async function loadStudents() {
+            try {
+                const res = await fetch(`${SCRIPT_URL}?action=getAllStudents`);
+                if (!res.ok) throw new Error('Network error');
+                const {students} = await res.json();
+
+                const list = document.getElementById('studentsList');
+                list.innerHTML = '';
+
+                batches.forEach(batch => {
+                    const activeStudents = (students[batch.id] || [])
+                        .filter(s => s.status === 'Regular' || s.status === 'Leave')
+                        .sort((a,b) => a.studentId.localeCompare(b.studentId));
+
+                    const accordion = document.createElement('div');
+                    accordion.className = 'batch-accordion';
+
+                    const header = document.createElement('div');
+                    header.className = 'batch-header collapsed';
+                    header.innerHTML = `
+                        <span>${batch.label}</span>
+                        <span class="batch-count">${activeStudents.length} active</span>
+                    `;
+
+                    const content = document.createElement('div');
+                    content.className = 'batch-content';
+
+                    if (activeStudents.length === 0) {
+                        content.innerHTML = '<p style="color:#888; padding:10px 0;">No active students (Regular/Leave)</p>';
+                    } else {
+                        activeStudents.forEach(s => {
+                            const div = document.createElement('div');
+                            div.className = 'student';
+                            div.innerHTML = `<strong>${s.studentId}</strong> | ${s.name} (${s.mobile})`;
+
+                            const statusSelect = document.createElement('select');
+                            statuses.forEach(st => {
+                                const opt = document.createElement('option');
+                                opt.value = st;
+                                opt.textContent = st;
+                                if (st === s.status) opt.selected = true;
+                                statusSelect.appendChild(opt);
+                            });
+                            statusSelect.addEventListener('change', () => updateStatus(s.studentId, statusSelect.value));
+
+                            const moveSelect = document.createElement('select');
+                            populateBatches(moveSelect);
+                            moveSelect.value = batch.id;
+
+                            const moveBtn = document.createElement('button');
+                            moveBtn.textContent = 'Move Batch';
+                            moveBtn.addEventListener('click', () => moveStudent(s.studentId, moveSelect.value));
+
+                            div.appendChild(statusSelect);
+                            div.appendChild(moveSelect);
+                            div.appendChild(moveBtn);
+                            content.appendChild(div);
+                        });
+                    }
+
+                    header.addEventListener('click', () => {
+                        header.classList.toggle('collapsed');
+                        content.classList.toggle('open');
+                    });
+
+                    accordion.appendChild(header);
+                    accordion.appendChild(content);
+                    list.appendChild(accordion);
+                });
+            } catch (e) {
+                showToast('Error loading students: ' + e.message, true);
+            }
+        }
+
+        loadStudents();
+
+        // Add Student
+        document.getElementById('addStudentForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            const name = e.target[0].value.trim();
+            const mobile = e.target[1].value.trim();
+            const batchId = e.target[2].value;
+            if (!name || !mobile || !batchId) return showToast('All fields required', true);
+
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({action: 'addStudent', batchId: parseInt(batchId), name, mobile})
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || 'Failed');
+                showToast('Student added successfully');
+                e.target.reset();
+                loadStudents();
+            } catch (err) {
+                showToast('Error: ' + err.message, true);
+            }
+        });
+
+        async function updateStatus(studentId, newStatus) {
+            try {
+                const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({action: 'updateStatus', studentId, newStatus}) });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message);
+                showToast('Status updated');
+                loadStudents();
+            } catch (err) {
+                showToast('Error: ' + err.message, true);
+            }
+        }
+
+        async function moveStudent(studentId, newBatchId) {
+            if (!newBatchId) return showToast('Select batch', true);
+            try {
+                const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({action: 'moveStudent', studentId, newBatchId: parseInt(newBatchId)}) });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message);
+                showToast('Student moved');
+                loadStudents();
+            } catch (err) {
+                showToast('Error: ' + err.message, true);
+            }
+        }
+
+        // Load Attendance
+        document.getElementById('loadAttendance').addEventListener('click', async () => {
+            const batchId = document.getElementById('batchSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            const year = document.getElementById('yearSelect').value;
+            if (!batchId || !month || !year) return showToast('Select all fields', true);
+
+            document.getElementById('attendanceTable').innerHTML = '<p style="text-align:center; padding:20px;">Loading...</p>';
+            document.getElementById('saveAttendance').style.display = 'none';
+
+            try {
+                const res = await fetch(`${SCRIPT_URL}?action=loadMonthAttendance&batchId=${batchId}&month=${month}&year=${year}`);
+                const data = await res.json();
+
+                if (data.message) {
+                    document.getElementById('attendanceTable').innerHTML = `<div class="no-students">${data.message}</div>`;
+                    return;
+                }
+
+                renderAttendanceTable(data.dates, data.students, data.data);
+                document.getElementById('saveAttendance').style.display = 'inline-block';
+            } catch (e) {
+                document.getElementById('attendanceTable').innerHTML = '';
+                showToast('Error loading attendance: ' + e.message, true);
+            }
+        });
+
+        // FIXED: renderAttendanceTable - corrected class assignment
+        function renderAttendanceTable(dates, students, attData) {
+            const container = document.getElementById('attendanceTable');
+            container.innerHTML = '';
+
+            const table = document.createElement('table');
+            const thead = document.createElement('thead');
+            const hr = document.createElement('tr');
+
+            const thName = document.createElement('th');
+            thName.textContent = 'Student (Mobile)';
+            hr.appendChild(thName);
+
+            dates.forEach(d => {
+                const th = document.createElement('th');
+                th.textContent = d;
+                hr.appendChild(th);
+            });
+            thead.appendChild(hr);
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            students.forEach((s, i) => {
+                const tr = document.createElement('tr');
+                tr.dataset.sid = s.sid;
+
+                const tdName = document.createElement('td');
+                tdName.textContent = s.displayName;
+                tr.appendChild(tdName);
+
+                dates.forEach((d, j) => {
+                    const td = document.createElement('td');
+                    const select = document.createElement('select');
+
+                    ['P', 'A', 'L'].forEach(val => {
+                        const opt = document.createElement('option');
+                        opt.value = val;
+                        opt.textContent = val;
+                        if (val === attData[i][j]) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+
+                    // Correct color class
+                    select.className = select.value === 'P' ? 'p' : select.value === 'A' ? 'a' : 'l';
+
+                    select.addEventListener('change', () => {
+                        select.className = select.value === 'P' ? 'p' : select.value === 'A' ? 'a' : 'l';
+                    });
+
+                    td.appendChild(select);
+                    tr.appendChild(td);
+                });
+
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            container.appendChild(table);
+        }
+
+        // Save Attendance
+        document.getElementById('saveAttendance').addEventListener('click', async () => {
+            const batchId = document.getElementById('batchSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            const year = document.getElementById('yearSelect').value;
+
+            const table = document.getElementById('attendanceTable').querySelector('table');
+            if (!table) return showToast('No data to save', true);
+
+            const rows = table.querySelectorAll('tbody tr');
+            const sids = [], data = [];
+
+            rows.forEach(r => {
+                sids.push(r.dataset.sid);
+                const row = [];
+                r.querySelectorAll('select').forEach(s => row.push(s.value));
+                data.push(row);
+            });
+
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'saveMonthAttendance',
+                        batchId: parseInt(batchId),
+                        month: parseInt(month),
+                        year: parseInt(year),
+                        sids,
+                        data
+                    })
+                });
+                const resp = await res.json();
+                if (!resp.success) throw new Error(resp.message || 'Failed');
+                showToast('Attendance saved successfully!');
+            } catch (e) {
+                showToast('Save error: ' + e.message, true);
+            }
+        });
+    </script>
+</body>
+</html>
